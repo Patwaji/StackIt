@@ -1,5 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { emailTemplate } from "./emailTemplate.js";
+import handlebars from "handlebars";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
@@ -10,13 +12,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendMail = async ({ to, subject, text, html }) => {
+export const sendMail = async ({ to, subject, templateData }) => {
+  const template = handlebars.compile(emailTemplate);
+  const compiledHtml = template(templateData);
   const mailOptions = {
     from: `"StackIt Support" <${process.env.MAIL_USERNAME}>`,
     to,
     subject,
-    text,
-    html,
+    html: compiledHtml,
   };
 
   try {
