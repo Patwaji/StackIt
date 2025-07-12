@@ -17,7 +17,7 @@ export default function QuestionCard({ question, onVoteChange }) {
   }, [question.id, router]);
 
   const handleVote = async (type, e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent card navigation
 
     try {
       const res = await fetch(`${questionOperationUrl}${question.id}/${type}`, {
@@ -83,10 +83,10 @@ export default function QuestionCard({ question, onVoteChange }) {
               <MessageSquare size={14} />
               <span>{question.answers} answers</span>
             </div>
-            {/* <div className="flex items-center gap-x-1">
+            <div className="flex items-center gap-x-1">
               <Eye size={14} />
               <span>{question.views} views</span>
-            </div> */}
+            </div>
           </div>
           <div className="mt-2 sm:mt-0">
             <span>

@@ -49,57 +49,9 @@ export default function HomePage() {
     if (token) setIsLoggedIn(true);
   }, []);
 
-  const mockQuestions = [
-    {
-      id: 1,
-      title: "How to center a div in CSS?",
-      excerpt:
-        "I've been trying to center a div both horizontally and vertically for ages. I've tried margin: auto, flexbox, and grid, but what is the most reliable and modern method...",
-      tags: ["css", "flexbox", "layout"],
-      votes: 125,
-      answers: 5,
-      author: "JaneDoe",
-      timestamp: "2 hours ago",
-      views: "2.1k",
-    },
-    {
-      id: 2,
-      title:
-        "What is the difference between let, const, and var in JavaScript?",
-      excerpt:
-        "I'm new to ES6 and I'm confused about the new variable declarations. When should I use let over const? And is var ever useful anymore? Looking for a clear explanation.",
-      tags: ["javascript", "es6", "variables"],
-      votes: 98,
-      answers: 8,
-      author: "JohnDev",
-      timestamp: "5 hours ago",
-      views: "3.4k",
-    },
-    {
-      id: 3,
-      title: "How to fetch data in React with hooks?",
-      excerpt:
-        "What is the best practice for fetching data from an API in a React functional component? I'm using the useEffect and useState hooks but I'm worried about infinite loops.",
-      tags: ["react", "hooks", "api", "fetch"],
-      votes: 210,
-      answers: 12,
-      author: "ReactFan",
-      timestamp: "1 day ago",
-      views: "5.8k",
-    },
-    {
-      id: 4,
-      title: "Best way to manage state in a large Next.js application?",
-      excerpt:
-        "Our Next.js app is growing and prop drilling is becoming a nightmare. We're considering Redux, Zustand, and React Context. What are the pros and cons of each for a large-scale project?",
-      tags: ["nextjs", "react", "state-management"],
-      votes: 77,
-      answers: 4,
-      author: "ScaleUp",
-      timestamp: "3 days ago",
-      views: "1.9k",
-    },
-  ];
+  useEffect(() => {
+    fetchQuestions();
+  }, [page, searchTerm]);
 
   const filters = ["Newest", "Most Votes", "Most Answers", "Unanswered"];
 
@@ -122,13 +74,12 @@ export default function HomePage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               All Questions
             </h1>
-            <div className="flex items-center space-x-4 mt-3 sm:mt-0">
-              {/* This button now triggers a function to check login status */}
-              <Button onClick={handleAskQuestionClick}>Ask Question</Button>
-            </div>
+            <Button onClick={handleAskQuestionClick} className="mt-3 sm:mt-0">
+              Ask Question
+            </Button>
           </div>
 
-          <div className="flex items-center border-b border-border mb-6">
+          {/* <div className="flex items-center border-b border-border mb-6">
             {filters.map((f) => (
               <button
                 key={f}
@@ -142,13 +93,70 @@ export default function HomePage() {
                 {f}
               </button>
             ))}
-          </div>
+          </div> */}
 
-          <div className="space-y-4">
-            {mockQuestions.map((q) => (
-              <QuestionCard key={q.id} question={q} />
-            ))}
-          </div>
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="mb-6 max-w-md">
+            <Input
+              type="text"
+              placeholder="Search questions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </form>
+
+          {loading ? (
+            <p className="text-muted-foreground text-center">Loading...</p>
+          ) : questions.length > 0 ? (
+            <div className="space-y-4">
+              {questions.map((q) => (
+                <QuestionCard
+                  key={q._id}
+                  question={{
+                    id: q._id,
+                    title: q.title,
+                    htmlContent: q.htmlContent, // <-- include this
+                    tags: [], // Add tag logic if available
+                    votes: q.upvotesCount || 0,
+                    answers: q.replyCount || 0,
+                    views: 0, // Replace with actual views if supported
+                    author: q.userId?.name || "Unknown",
+                    timeAgo: new Date(q.createdAt).toLocaleString(),
+                  }}
+                  onVoteChange={fetchQuestions}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center">
+              No questions found.
+            </p>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={page === totalPages}
+                onClick={() =>
+                  setPage((prev) => Math.min(prev + 1, totalPages))
+                }
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </main>
       </div>
 
