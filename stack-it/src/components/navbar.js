@@ -33,30 +33,55 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ModeToggle } from "./theme/theme-toggle";
+import { toast } from "sonner";
+import { userDetailsUrl } from "@/lib/API";
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const { setTheme, theme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    if (token) {
+      setIsLoggedIn(true);
+      fetchUserDetails(token);
+    }
   }, []);
+
+  const fetchUserDetails = async (token) => {
+    try {
+      const res = await fetch(userDetailsUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch user");
+
+      const data = await res.json();
+      setUser(data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to load user info.");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
-    router.refresh(); // or router.push("/") if needed
+    setUser(null);
+    router.refresh();
+    toast.success("Logged out successfully");
   };
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo + Nav */}
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -70,22 +95,19 @@ export function Navbar() {
             </Link>
 
             <div className="hidden lg:flex items-center space-x-6 ml-8">
-              <Link
-                href="/"
-                className="text-sm font-medium transition-colors hover:text-primary"
-              >
+              <Link href="/" className="text-sm font-medium hover:text-primary">
                 Home
               </Link>
-              <Link
+              {/* <Link
                 href="/community"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                className="text-sm font-medium text-muted-foreground hover:text-primary"
               >
                 Community
-              </Link>
+              </Link> */}
             </div>
           </div>
 
-          {/* Search */}
+          {/* Search
           <div className="flex-1 max-w-md mx-4 hidden md:block">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -95,11 +117,10 @@ export function Navbar() {
                 className="pl-10 pr-4"
               />
             </div>
-          </div>
+          </div> */}
 
-          {/* Actions */}
           <div className="flex items-center space-x-2">
-            <Button
+            {/* <Button
               variant="ghost"
               size="icon"
               className="md:hidden"
@@ -107,7 +128,7 @@ export function Navbar() {
             >
               <Search className="h-5 w-5" />
               <span className="sr-only">Search</span>
-            </Button>
+            </Button> */}
 
             <div className="hidden sm:block">
               <ModeToggle />
@@ -128,7 +149,10 @@ export function Navbar() {
                     >
                       <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                         <AvatarImage
-                          src="/placeholder.svg?height=40&width=40"
+                          src={
+                            user?.avatar ||
+                            "/placeholder.svg?height=40&width=40"
+                          }
                           alt="Profile"
                         />
                         <AvatarFallback>
@@ -141,10 +165,10 @@ export function Navbar() {
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">
-                          John Doe
+                          {user?.name || "Anonymous"}
                         </p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          john.doe@example.com
+                          {user?.email || "unknown@example.com"}
                         </p>
                       </div>
                     </DropdownMenuLabel>
@@ -196,7 +220,6 @@ export function Navbar() {
               </>
             )}
 
-            {/* Mobile Menu */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden">

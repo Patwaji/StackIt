@@ -1,24 +1,91 @@
 "use client";
 
-import { use } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import axios from "axios";
 import { ChevronUp, ChevronDown, MessageSquare, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  postAnswerUrl,
+  questionOperationUrl,
+  replyOperationUrl,
+} from "@/lib/API";
 
-import { questions, answers } from "@/lib/mock-data";
+export default function QuestionDetailPage() {
+  const params = useParams();
+  const { id } = params;
 
-export default function QuestionDetailPage({ params }) {
-  const { id } = use(params);
-  const question = questions.find((q) => q.id === id);
-  const [questionAnswers, setQuestionAnswers] = useState(answers[id] || []);
+  const [question, setQuestion] = useState(null);
+  const [replies, setReplies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newAnswerContent, setNewAnswerContent] = useState("");
+
+  const fetchQuestionData = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${questionOperationUrl}${id}`);
+      setQuestion(data.question);
+      setReplies(data.replies);
+    } catch (error) {
+      console.error("Failed to fetch question:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestionData();
+  }, [id]);
+
+  const handleAnswerSubmit = async (e) => {
+    e.preventDefault();
+    if (!newAnswerContent.trim()) return;
+
+    try {
+      await axios.post(
+        `${postAnswerUrl}`,
+        { text: newAnswerContent, questionId: id },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setNewAnswerContent("");
+      fetchQuestionData();
+    } catch (error) {
+      console.error("Failed to post answer:", error);
+    }
+  };
+
+  const handleReplyVote = async (replyId, type) => {
+    try {
+      await axios.post(
+        `${replyOperationUrl}${replyId}/${type}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      fetchQuestionData();
+    } catch (error) {
+      console.error(`Failed to ${type} reply:`, error);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-center text-muted-foreground">Loading...</p>;
+  }
 
   if (!question) {
     return (
@@ -34,21 +101,6 @@ export default function QuestionDetailPage({ params }) {
     );
   }
 
-  const handleAnswerSubmit = (e) => {
-    e.preventDefault();
-    if (newAnswerContent.trim()) {
-      const newAnswer = {
-        id: `a${questionAnswers.length + 1}`,
-        author: "Current User",
-        timeAgo: "just now",
-        votes: 0,
-        content: newAnswerContent.trim(),
-      };
-      setQuestionAnswers((prevAnswers) => [...prevAnswers, newAnswer]);
-      setNewAnswerContent("");
-    }
-  };
-
   return (
     <div className="container mx-auto py-8 px-4">
       <Link href="/" className="mb-6 inline-block">
@@ -61,7 +113,9 @@ export default function QuestionDetailPage({ params }) {
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <ChevronUp className="h-5 w-5" />
             </Button>
-            <span className="text-lg font-bold">{question.votes}</span>
+            <span className="text-lg font-bold">
+              {question.upvotes?.length || 0}
+            </span>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <ChevronDown className="h-5 w-5" />
             </Button>
@@ -71,26 +125,28 @@ export default function QuestionDetailPage({ params }) {
             <h1 className="text-2xl font-bold leading-tight">
               {question.title}
             </h1>
-            <p className="text-base text-muted-foreground">
-              {question.fullQuestion}
-            </p>
+            <div
+              className="text-base text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: question.htmlContent }}
+            />
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-6 pt-0 text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <MessageSquare className="h-4 w-4" />
-              <span>{question.answers} answers</span>
+              <span>{replies.length} answers</span>
             </div>
             <div className="flex items-center gap-1">
               <Eye className="h-4 w-4" />
-              <span>{question.views} views</span>
+              <span>0 views</span>
             </div>
           </div>
           <div className="text-right">
             Asked by{" "}
-            <span className="font-medium text-primary">{question.author}</span>{" "}
-            {question.timeAgo}
+            <span className="font-medium text-primary">
+              {question.userId?.name}
+            </span>
           </div>
         </CardFooter>
       </Card>
@@ -111,7 +167,6 @@ export default function QuestionDetailPage({ params }) {
                 rows={5}
                 value={newAnswerContent}
                 onChange={(e) => setNewAnswerContent(e.target.value)}
-                className="w-full"
               />
             </div>
             <div className="flex justify-end">
@@ -121,35 +176,42 @@ export default function QuestionDetailPage({ params }) {
         </CardContent>
       </Card>
 
-      <h2 className="text-xl font-bold mb-4">
-        {questionAnswers.length} Answers
-      </h2>
+      <h2 className="text-xl font-bold mb-4 mt-10">{replies.length} Answers</h2>
       <div className="space-y-6">
-        {questionAnswers.map((answer) => (
-          <Card key={answer.id} className="w-full bg-card text-card-foreground">
+        {replies.map((reply) => (
+          <Card key={reply._id} className="w-full bg-card text-card-foreground">
             <CardContent className="p-6 flex gap-6">
               <div className="flex flex-col items-center justify-start pt-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleReplyVote(reply._id, "upvote")}
+                >
                   <ChevronUp className="h-5 w-5" />
                 </Button>
-                <span className="text-lg font-bold">{answer.votes}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <span className="text-lg font-bold">
+                  {reply.upvotes?.length || 0}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleReplyVote(reply._id, "downvote")}
+                >
                   <ChevronDown className="h-5 w-5" />
                 </Button>
               </div>
               <div className="flex-1 space-y-4">
-                <p className="text-base text-muted-foreground">
-                  {answer.content}
-                </p>
+                <p className="text-base text-muted-foreground">{reply.text}</p>
               </div>
             </CardContent>
             <CardFooter className="flex items-center justify-end p-6 pt-0 text-sm text-muted-foreground">
               <div className="text-right">
                 Answered by{" "}
                 <span className="font-medium text-primary">
-                  {answer.author}
-                </span>{" "}
-                {answer.timeAgo}
+                  {reply.userId?.name}
+                </span>
               </div>
             </CardFooter>
           </Card>
