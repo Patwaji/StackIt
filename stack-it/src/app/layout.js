@@ -51,7 +51,8 @@ const AppHeader = () => {
                     </Link>
                     <div className="hidden md:flex items-center gap-4 text-sm font-medium text-muted-foreground">
                         <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-                        <Link href="/community" className="hover:text-foreground transition-colors">Community</Link>
+                        {/* Corrected the link to the community page */}
+                        <Link href="/screens/community" className="hover:text-foreground transition-colors">Community</Link>
                     </div>
                 </div>
 
