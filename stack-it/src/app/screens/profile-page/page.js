@@ -11,6 +11,42 @@ import {
   UserCheck,
 } from "lucide-react";
 
+// Mock Data - In a real app, this would be fetched alongside user details
+const mockUserActivity = {
+  questions: [
+    {
+      id: 1,
+      title: "How to fetch data in React with hooks?",
+      votes: 210,
+      answers: 12,
+    },
+    {
+      id: 2,
+      title: "Best way to manage state in a large Next.js application?",
+      votes: 77,
+      answers: 4,
+    },
+  ],
+  answers: [
+    {
+      id: 3,
+      questionTitle: "How to center a div in CSS?",
+      votes: 42,
+      accepted: true,
+    },
+    {
+      id: 4,
+      questionTitle: "Difference between `let`, `const`, and `var`?",
+      votes: 15,
+      accepted: false,
+    },
+  ],
+};
+
+// This would be your actual API endpoint
+const userDetailsUrl = "https://api.example.com/user/me";
+
+// You would typically have a toast notification library configured
 const toast = {
   error: (message) => console.error(`Toast Error: ${message}`),
 };

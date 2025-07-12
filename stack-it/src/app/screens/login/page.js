@@ -159,7 +159,7 @@ export default function LoginPage() {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We've sent a 6-digit OTP to <b>{email}</b>
+                We&aposve sent a 6-digit OTP to <b>{email}</b>
               </p>
               <InputOTP maxLength={6} value={otp} onChange={(val) => setOtp(val)}>
                 <InputOTPGroup>
