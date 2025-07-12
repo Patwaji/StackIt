@@ -23,6 +23,10 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import axios from "axios";
+import { postQuestionUrl } from "@/lib/API";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function TextEditor() {
   const [content, setContent] = useState("");
@@ -31,6 +35,7 @@ export function TextEditor() {
   const [linkUrl, setLinkUrl] = useState("");
   const editorRef = useRef(null);
   const selectionRef = useRef(null);
+  const router = useRouter();
 
   const executeCommand = (command, value = null) => {
     document.execCommand(command, false, value);
@@ -45,7 +50,7 @@ export function TextEditor() {
       selection.addRange(selectionRef.current);
       const selectedText = selection.toString();
       if (selectedText) {
-        const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${selectedText}</a>`;
+        const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style={{color: "blue"}}>${selectedText}</a>`;
         document.execCommand("insertHTML", false, linkHtml);
       }
       setLinkUrl("");
@@ -136,15 +141,39 @@ export function TextEditor() {
       : null;
   };
 
-  const handleSubmit = () => {
-    const jsonResult = parseContentToJson();
-    setJsonOutput(jsonResult);
-    console.log("Editor JSON Output:", jsonResult);
-    console.log("Formatted JSON:", JSON.stringify(jsonResult, null, 2));
-  };
-
   const handleContentChange = () => {
     setContent(editorRef.current?.innerHTML || "");
+  };
+
+  const handleSubmit = async () => {
+    const jsonResult = parseContentToJson();
+    setJsonOutput(jsonResult);
+
+    const plainWords = jsonResult.plainText.trim().split(/\s+/);
+    const title =
+      "I'm asking about " +
+      plainWords.slice(0, 12).join(" ") +
+      (plainWords.length > 12 ? "..." : "");
+
+    const payload = {
+      ...jsonResult,
+      title,
+    };
+
+    try {
+      const response = await axios.post(postQuestionUrl, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      toast.success("Question posted successfully!");
+      router.push("/");
+    } catch (error) {
+      console.error("Error posting question:", error);
+      toast.error("Failed to post question");
+    }
   };
 
   return (

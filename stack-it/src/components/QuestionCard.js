@@ -1,24 +1,13 @@
+"use client";
+
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "./ui/card";
+import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import {
-  MessageSquare,
-  Eye,
-  ChevronUp,
-  ChevronDown,
-  Badge,
-} from "lucide-react";
+import { MessageSquare, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import { questionOperationUrl } from "@/lib/API";
 
-export default function QuestionCard({ question }) {
+export default function QuestionCard({ question, onVoteChange }) {
   const router = useRouter();
 
   if (!question) return null;
@@ -26,6 +15,28 @@ export default function QuestionCard({ question }) {
   const handleCardClick = useCallback(() => {
     router.push(`/screens/question/${question.id}`);
   }, [question.id, router]);
+
+  const handleVote = async (type, e) => {
+    e.stopPropagation();
+
+    try {
+      const res = await fetch(`${questionOperationUrl}${question.id}/${type}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`, // if protected
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Vote failed");
+      }
+
+      if (onVoteChange) onVoteChange(); // Refresh list if callback is passed
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Card
@@ -37,6 +48,8 @@ export default function QuestionCard({ question }) {
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
+          onClick={(e) => handleVote("upvote", e)}
+          title="Upvote this question"
         >
           <ChevronUp className="h-5 w-5" />
         </Button>
@@ -47,6 +60,8 @@ export default function QuestionCard({ question }) {
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+          onClick={(e) => handleVote("downvote", e)}
+          title="Downvote this question"
         >
           <ChevronDown className="h-5 w-5" />
         </Button>
@@ -56,19 +71,22 @@ export default function QuestionCard({ question }) {
         <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2 hover:text-primary/90 transition-colors duration-200">
           {question.title}
         </h2>
-        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-          {question.excerpt}
-        </p>
+
+        <div
+          className="text-muted-foreground text-sm mb-3 line-clamp-2 overflow-hidden"
+          dangerouslySetInnerHTML={{ __html: question.htmlContent || "" }}
+        />
+
         <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-x-4">
             <div className="flex items-center gap-x-1">
               <MessageSquare size={14} />
               <span>{question.answers} answers</span>
             </div>
-            <div className="flex items-center gap-x-1">
+            {/* <div className="flex items-center gap-x-1">
               <Eye size={14} />
               <span>{question.views} views</span>
-            </div>
+            </div> */}
           </div>
           <div className="mt-2 sm:mt-0">
             <span>
