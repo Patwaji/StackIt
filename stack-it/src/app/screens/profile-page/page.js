@@ -1,11 +1,29 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image'; // Import the Next.js Image component
 import { Mail, Calendar, Edit, Shield, UserX, KeyRound, UserCheck } from 'lucide-react';
 
+// Mock Data - In a real app, this would be fetched alongside user details
+const mockUserActivity = {
+    questions: [
+        { id: 1, title: "How to fetch data in React with hooks?", votes: 210, answers: 12 },
+        { id: 2, title: "Best way to manage state in a large Next.js application?", votes: 77, answers: 4 },
+    ],
+    answers: [
+        { id: 3, questionTitle: "How to center a div in CSS?", votes: 42, accepted: true },
+        { id: 4, questionTitle: "Difference between `let`, `const`, and `var`?", votes: 15, accepted: false },
+    ]
+};
+
+// This would be your actual API endpoint
+const userDetailsUrl = 'https://api.example.com/user/me';
+
+// You would typically have a toast notification library configured
 const toast = {
     error: (message) => console.error(`Toast Error: ${message}`),
 };
+
 
 export default function ProfilePage({ isAdmin = false }) {
     const [user, setUser] = useState(null);
@@ -19,8 +37,10 @@ export default function ProfilePage({ isAdmin = false }) {
 
         const fetchUserDetails = async (authToken) => {
             try {
+                // The fetch call to your actual API
                 const res = await fetch(userDetailsUrl, {
                     headers: {
+                        // Corrected Authorization header format
                         'Authorization': `Bearer ${authToken}`,
                     },
                 });
@@ -44,7 +64,7 @@ export default function ProfilePage({ isAdmin = false }) {
             fetchUserDetails(token);
         } else {
             setLoading(false);
-            setError("No authentication token provided.");
+            setError("No authentication token provided. Please log in.");
             toast.error("You are not logged in.");
         }
     }, []);
@@ -53,7 +73,7 @@ export default function ProfilePage({ isAdmin = false }) {
         return <div className="container mx-auto p-8 text-center">Loading profile...</div>;
     }
 
-    if (error && !user) {
+    if (error) {
         return <div className="container mx-auto p-8 text-center text-destructive">{error}</div>;
     }
 
@@ -106,11 +126,20 @@ export default function ProfilePage({ isAdmin = false }) {
         </div>
     );
 
+
     return (
         <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+            {/* Profile Header */}
             <div className="bg-card p-6 rounded-lg border mb-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-                    <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-primary" />
+                    {/* Replaced <img> with Next.js <Image> */}
+                    <Image
+                        src={user.avatarUrl || '/default-avatar.png'} // Provide a fallback avatar
+                        alt={user.name}
+                        width={96}
+                        height={96}
+                        className="w-24 h-24 rounded-full border-4 border-primary"
+                    />
                     <div className="flex-1 text-center sm:text-left">
                         <h1 className="text-3xl font-bold">{user.name}</h1>
                         <p className="text-muted-foreground">@{user.username}</p>
@@ -125,6 +154,7 @@ export default function ProfilePage({ isAdmin = false }) {
                     </button>
                 </div>
 
+                {/* Admin Controls - Rendered only if isAdmin is true */}
                 {isAdmin && isLoggedIn && (
                     <div className="mt-6 pt-6 border-t">
                         <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center"><Shield className="w-4 h-4 mr-2"/> Admin Actions</h3>
@@ -137,6 +167,7 @@ export default function ProfilePage({ isAdmin = false }) {
                 )}
             </div>
 
+            {/* Activity Section */}
             <div>
                 <div className="border-b mb-6">
                     <nav className="-mb-px flex space-x-6" aria-label="Tabs">
