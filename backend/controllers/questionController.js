@@ -1,6 +1,6 @@
-const Question = require("../models/question");
+import Question from "../models/question.js";
 
-const postQuestion = async (req, res) => {
+export const postQuestion = async (req, res) => {
   try {
     const {
       title,
@@ -13,7 +13,8 @@ const postQuestion = async (req, res) => {
       wordCount,
       characterCount,
     } = req.body;
-    const userId = req.userId; // Assuming you have the user ID in the request after authentication
+
+    const userId = req.userId;
 
     const newQuestion = new Question({
       title,
@@ -30,36 +31,31 @@ const postQuestion = async (req, res) => {
 
     await newQuestion.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Question posted successfully",
-        questionId: newQuestion._id,
-      });
+    res.status(201).json({
+      message: "Question posted successfully",
+      questionId: newQuestion._id,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-const upvoteQuestion = async (req, res) => {
+export const upvoteQuestion = async (req, res) => {
   try {
     const questionId = req.params.id;
     const userId = req.userId;
 
     const question = await Question.findById(questionId);
-
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Remove from downvotes if already downvoted
     const downvoteIndex = question.downvotes.indexOf(userId);
     if (downvoteIndex > -1) {
       question.downvotes.splice(downvoteIndex, 1);
     }
 
-    // Add to upvotes if not already upvoted
     const upvoteIndex = question.upvotes.indexOf(userId);
     if (upvoteIndex === -1) {
       question.upvotes.push(userId);
@@ -74,24 +70,21 @@ const upvoteQuestion = async (req, res) => {
   }
 };
 
-const downvoteQuestion = async (req, res) => {
+export const downvoteQuestion = async (req, res) => {
   try {
     const questionId = req.params.id;
     const userId = req.userId;
 
     const question = await Question.findById(questionId);
-
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    // Remove from upvotes if already upvoted
     const upvoteIndex = question.upvotes.indexOf(userId);
     if (upvoteIndex > -1) {
       question.upvotes.splice(upvoteIndex, 1);
     }
 
-    // Add to downvotes if not already downvoted
     const downvoteIndex = question.downvotes.indexOf(userId);
     if (downvoteIndex === -1) {
       question.downvotes.push(userId);
@@ -104,10 +97,4 @@ const downvoteQuestion = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-};
-
-module.exports = {
-  postQuestion,
-  upvoteQuestion,
-  downvoteQuestion,
 };

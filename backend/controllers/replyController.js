@@ -1,9 +1,9 @@
-const Reply = require("../models/reply");
+import Reply from "../models/reply.js";
 
-const postReply = async (req, res) => {
+export const postReply = async (req, res) => {
   try {
     const { questionId, text } = req.body;
-    const userId = req.userId; // Assuming you have the user ID in the request after authentication
+    const userId = req.userId;
 
     const newReply = new Reply({
       questionId,
@@ -13,33 +13,31 @@ const postReply = async (req, res) => {
 
     await newReply.save();
 
-    res
-      .status(201)
-      .json({ message: "Reply posted successfully", replyId: newReply._id });
+    res.status(201).json({
+      message: "Reply posted successfully",
+      replyId: newReply._id,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-const upvoteReply = async (req, res) => {
+export const upvoteReply = async (req, res) => {
   try {
     const replyId = req.params.id;
     const userId = req.userId;
 
     const reply = await Reply.findById(replyId);
-
     if (!reply) {
       return res.status(404).json({ message: "Reply not found" });
     }
 
-    // Remove from downvotes if already downvoted
     const downvoteIndex = reply.downvotes.indexOf(userId);
     if (downvoteIndex > -1) {
       reply.downvotes.splice(downvoteIndex, 1);
     }
 
-    // Add to upvotes if not already upvoted
     const upvoteIndex = reply.upvotes.indexOf(userId);
     if (upvoteIndex === -1) {
       reply.upvotes.push(userId);
@@ -54,24 +52,21 @@ const upvoteReply = async (req, res) => {
   }
 };
 
-const downvoteReply = async (req, res) => {
+export const downvoteReply = async (req, res) => {
   try {
     const replyId = req.params.id;
     const userId = req.userId;
 
     const reply = await Reply.findById(replyId);
-
     if (!reply) {
       return res.status(404).json({ message: "Reply not found" });
     }
 
-    // Remove from upvotes if already upvoted
     const upvoteIndex = reply.upvotes.indexOf(userId);
     if (upvoteIndex > -1) {
       reply.upvotes.splice(upvoteIndex, 1);
     }
 
-    // Add to downvotes if not already downvoted
     const downvoteIndex = reply.downvotes.indexOf(userId);
     if (downvoteIndex === -1) {
       reply.downvotes.push(userId);
@@ -84,10 +79,4 @@ const downvoteReply = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-};
-
-module.exports = {
-  postReply,
-  upvoteReply,
-  downvoteReply,
 };

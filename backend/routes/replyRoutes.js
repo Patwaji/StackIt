@@ -1,10 +1,15 @@
-const express = require("express");
+import express from "express";
+import {
+  postReply,
+  upvoteReply,
+  downvoteReply,
+} from "../controllers/replyController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
-const replyController = require("../controllers/replyController");
-const authMiddleware = require("../middleware/authMiddleware");
 
-router.post("/", authMiddleware, replyController.postReply);
-router.post("/:id/upvote", authMiddleware, replyController.upvoteReply);
-router.post("/:id/downvote", authMiddleware, replyController.downvoteReply);
+router.post("/", authMiddleware, postReply);
+router.post("/:id/upvote", authMiddleware, upvoteReply);
+router.post("/:id/downvote", authMiddleware, downvoteReply);
 
-module.exports = router;
+export default router;

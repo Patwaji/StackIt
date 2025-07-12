@@ -1,9 +1,16 @@
-const express = require("express");
+import express from "express";
+import {
+  signup,
+  login,
+  verifyOTP,
+  getUserDetails,
+} from "../controllers/userController.js";
+
 const router = express.Router();
-const userController = require("../controllers/userController");
 
-router.post("/signup", userController.signup);
-router.post("/login", userController.login);
-router.post("/verify-otp", userController.verifyOTP);
+router.post("/signup", signup);
+router.post("/login", login);
+router.post("/verify-otp", verifyOTP);
+router.get("/:userId", getUserDetails);
 
-module.exports = router;
+export default router;

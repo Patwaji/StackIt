@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
-    const token = req.headers.authorization.split(" ")[1]; // Assuming the token is in the Authorization header
+    const token = req.headers.authorization.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
@@ -21,5 +21,3 @@ const authMiddleware = (req, res, next) => {
     res.status(401).json({ message: "Unauthorized" });
   }
 };
-
-module.exports = authMiddleware;
