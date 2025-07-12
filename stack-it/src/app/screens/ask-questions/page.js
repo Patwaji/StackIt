@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,6 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 
-// --- Predefined list of tags ---
 const ALL_TAGS = [
     "javascript", "react", "nextjs", "typescript", "python", "css", "html",
     "nodejs", "java", "c++", "c#", "php", "ruby", "go", "swift", "kotlin",
@@ -28,11 +27,8 @@ const ALL_TAGS = [
     "tailwindcss", "api", "graphql", "rest", "aws", "azure", "google-cloud",
 ];
 
-// --- New Tag Input Component with Dropdown ---
 const TagInput = ({ tags, setTags }) => {
     const [open, setOpen] = useState(false);
-
-    // Filter out tags that have already been selected
     const availableTags = ALL_TAGS.filter(tag => !tags.includes(tag));
 
     const removeTag = (tagToRemove) => {
@@ -43,7 +39,7 @@ const TagInput = ({ tags, setTags }) => {
         if (!tags.includes(tag)) {
             setTags([...tags, tag]);
         }
-        setOpen(false); // Close the popover after selection
+        setOpen(false);
     };
 
     return (
@@ -98,8 +94,6 @@ const TagInput = ({ tags, setTags }) => {
     );
 };
 
-
-// --- Main Ask a Question Page Component ---
 export default function AskQuestionPage() {
     const [tags, setTags] = useState([]);
 
@@ -117,7 +111,6 @@ export default function AskQuestionPage() {
                         </p>
                         <Input id="title" placeholder="e.g. How do I center a div in CSS?" />
                     </div>
-
                     <div className="grid gap-2">
                         <Label htmlFor="body" className="text-lg font-semibold">Body</Label>
                         <p className="text-sm text-muted-foreground">
@@ -125,9 +118,7 @@ export default function AskQuestionPage() {
                         </p>
                         <Textarea id="body" placeholder="Type your question details here." rows={10} />
                     </div>
-
                     <TagInput tags={tags} setTags={setTags} />
-
                     <Button type="submit" className="w-40">Post Your Question</Button>
                 </form>
             </div>
