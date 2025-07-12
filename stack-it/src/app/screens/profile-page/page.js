@@ -10,43 +10,8 @@ import {
   KeyRound,
   UserCheck,
 } from "lucide-react";
+import { userDetailsUrl } from "@/lib/API";
 
-// Mock Data - In a real app, this would be fetched alongside user details
-const mockUserActivity = {
-  questions: [
-    {
-      id: 1,
-      title: "How to fetch data in React with hooks?",
-      votes: 210,
-      answers: 12,
-    },
-    {
-      id: 2,
-      title: "Best way to manage state in a large Next.js application?",
-      votes: 77,
-      answers: 4,
-    },
-  ],
-  answers: [
-    {
-      id: 3,
-      questionTitle: "How to center a div in CSS?",
-      votes: 42,
-      accepted: true,
-    },
-    {
-      id: 4,
-      questionTitle: "Difference between `let`, `const`, and `var`?",
-      votes: 15,
-      accepted: false,
-    },
-  ],
-};
-
-// This would be your actual API endpoint
-const userDetailsUrl = "https://api.example.com/user/me";
-
-// You would typically have a toast notification library configured
 const toast = {
   error: (message) => console.error(`Toast Error: ${message}`),
 };
@@ -141,43 +106,6 @@ export default function ProfilePage({ isAdmin = false }) {
     </div>
   );
 
-  const QuestionsTab = () => (
-    <div className="space-y-4">
-      {mockUserActivity.questions.map((q) => (
-        <div key={q.id} className="p-4 border rounded-md bg-background/50">
-          <a href="#" className="font-semibold text-primary hover:underline">
-            {q.title}
-          </a>
-          <div className="text-xs text-muted-foreground mt-1">
-            <span>{q.votes} votes</span> &middot;{" "}
-            <span>{q.answers} answers</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const AnswersTab = () => (
-    <div className="space-y-4">
-      {mockUserActivity.answers.map((a) => (
-        <div key={a.id} className="p-4 border rounded-md bg-background/50">
-          <p className="text-muted-foreground">
-            Answer to:{" "}
-            <a href="#" className="font-semibold text-primary hover:underline">
-              {a.questionTitle}
-            </a>
-          </p>
-          <div className="text-xs text-muted-foreground mt-1">
-            <span>{a.votes} votes</span>{" "}
-            {a.accepted && (
-              <span className="ml-2 text-green-500 font-bold">✓ Accepted</span>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <main className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="bg-card p-6 rounded-lg border mb-8">
@@ -190,26 +118,7 @@ export default function ProfilePage({ isAdmin = false }) {
           <div className="flex-1 text-center sm:text-left">
             <h1 className="text-3xl font-bold">{user.name}</h1>
             <p className="text-muted-foreground">@{user.username}</p>
-            <div className="flex justify-center sm:justify-start flex-wrap gap-x-6 gap-y-2 mt-4">
-              <div>
-                <span className="font-bold text-lg">
-                  {user.stats.reputation}
-                </span>{" "}
-                <span className="text-sm text-muted-foreground">
-                  Reputation
-                </span>
-              </div>
-              <div>
-                <span className="font-bold text-lg">
-                  {user.stats.questions}
-                </span>{" "}
-                <span className="text-sm text-muted-foreground">Questions</span>
-              </div>
-              <div>
-                <span className="font-bold text-lg">{user.stats.answers}</span>{" "}
-                <span className="text-sm text-muted-foreground">Answers</span>
-              </div>
-            </div>
+            <div className="flex justify-center sm:justify-start flex-wrap gap-x-6 gap-y-2 mt-4"></div>
           </div>
           <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
             <Edit className="w-4 h-4 mr-2" /> Edit Profile
@@ -274,8 +183,8 @@ export default function ProfilePage({ isAdmin = false }) {
 
         <div>
           {activeTab === "profile" && <ProfileTab />}
-          {activeTab === "questions" && <QuestionsTab />}
-          {activeTab === "answers" && <AnswersTab />}
+          {/* {activeTab === "questions" && <QuestionsTab />}
+          {activeTab === "answers" && <AnswersTab />} */}
         </div>
       </div>
     </main>
