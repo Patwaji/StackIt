@@ -173,14 +173,16 @@ export function Navbar() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <Link href="/screens/profile-page">
+                      <DropdownMenuItem>
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                    </Link>
+                    {/* <DropdownMenuItem>
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem className="sm:hidden">
                       <Bell className="mr-2 h-4 w-4" />
                       <span>Notifications</span>
