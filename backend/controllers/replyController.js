@@ -3,7 +3,7 @@ import Reply from "../models/reply.js";
 export const postReply = async (req, res) => {
   try {
     const { questionId, text } = req.body;
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     const newReply = new Reply({
       questionId,
@@ -26,7 +26,7 @@ export const postReply = async (req, res) => {
 export const upvoteReply = async (req, res) => {
   try {
     const replyId = req.params.id;
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     const reply = await Reply.findById(replyId);
     if (!reply) {
@@ -55,7 +55,7 @@ export const upvoteReply = async (req, res) => {
 export const downvoteReply = async (req, res) => {
   try {
     const replyId = req.params.id;
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     const reply = await Reply.findById(replyId);
     if (!reply) {

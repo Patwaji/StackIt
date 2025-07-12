@@ -36,9 +36,16 @@ const questionSchema = new mongoose.Schema({
   ],
   links: [
     {
-      type: String,
+      text: { type: String },
+      url: { type: String },
+      target: { type: String },
+      position: {
+        start: { type: Number },
+        end: { type: Number },
+      },
     },
   ],
+
   alignment: {
     type: String,
   },
