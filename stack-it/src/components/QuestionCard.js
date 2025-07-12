@@ -10,11 +10,13 @@ import { questionOperationUrl } from "@/lib/API";
 export default function QuestionCard({ question, onVoteChange }) {
   const router = useRouter();
 
-  if (!question) return null;
-
   const handleCardClick = useCallback(() => {
-    router.push(`/screens/question/${question.id}`);
-  }, [question.id, router]);
+    if (question) {
+      router.push(`/screens/question/${question.id}`);
+    }
+  }, [question?.id, router]);
+
+  if (!question) return null;
 
   const handleVote = async (type, e) => {
     e.stopPropagation(); // Prevent card navigation
