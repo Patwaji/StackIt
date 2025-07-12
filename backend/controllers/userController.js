@@ -1,8 +1,9 @@
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
-import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { emailTemplate } from "../utils/emailTemplate.js";
+import { sendMail } from "../utils/transporter.js";
 
 export const signup = async (req, res) => {
   try {
@@ -16,7 +17,7 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const otp = crypto.randomInt(100000, 999999).toString();
-    const otpExpiry = Date.now() + 3600000;
+    const otpExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
 
     const newUser = new User({
       name,
@@ -28,60 +29,27 @@ export const signup = async (req, res) => {
 
     await newUser.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "your-email@gmail.com",
-        pass: "your-email-password",
-      },
-    });
+    const htmlContent = emailTemplate
+      .replace("{{SUBJECT}}", "Verify Your Email")
+      .replace("{{GREETING}}", `Hello ${name},`)
+      .replace(
+        "{{MAIN_MESSAGE}}",
+        "Thank you for signing up to StackIt. Please use the OTP below to verify your email address."
+      )
+      .replace("{{HIGHLIGHT_CONTENT}}", otp)
+      .replace("{{SECONDARY_MESSAGE}}", "This OTP will expire in 1 hour.");
 
-    const mailOptions = {
-      from: "your-email@gmail.com",
+    await sendMail({
       to: email,
-      subject: "Email Verification OTP",
-      text: `Your OTP is: ${otp}`,
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
+      subject: "Verify Your Email - StackIt",
+      html: htmlContent,
     });
 
     res.status(201).json({
-      message:
-        "User registered successfully. Please check your email for OTP verification.",
+      message: "User registered. OTP sent to your email.",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.status(200).json({ message: "Logged in successfully", token });
-  } catch (error) {
-    console.error(error);
+    console.error("Signup Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -92,34 +60,63 @@ export const verifyOTP = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user || user.otp !== otp || user.otpExpiry < Date.now()) {
-      return res.status(400).json({ message: "Invalid email or OTP" });
+      return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
     user.otp = null;
     user.otpExpiry = null;
+    user.isEmailVerified = true;
     await user.save();
 
-    res.status(200).json({ message: "Email verified successfully" });
+    res.status(200).json({ message: "Email verified successfully." });
   } catch (error) {
-    console.error(error);
+    console.error("OTP Verification Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials." });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials." });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const getUserDetails = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    const user = await User.findById(userId).select(
+    const user = await User.findById(req.user.userId).select(
       "-password -otp -otpExpiry"
     );
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
     res.status(200).json(user);
   } catch (error) {
-    console.error(error);
+    console.error("Get Logged-in User Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
