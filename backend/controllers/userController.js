@@ -29,20 +29,17 @@ export const signup = async (req, res) => {
 
     await newUser.save();
 
-    const htmlContent = emailTemplate
-      .replace("{{SUBJECT}}", "Verify Your Email")
-      .replace("{{GREETING}}", `Hello ${name},`)
-      .replace(
-        "{{MAIN_MESSAGE}}",
-        "Thank you for signing up to StackIt. Please use the OTP below to verify your email address."
-      )
-      .replace("{{HIGHLIGHT_CONTENT}}", otp)
-      .replace("{{SECONDARY_MESSAGE}}", "This OTP will expire in 1 hour.");
-
     await sendMail({
       to: email,
       subject: "Verify Your Email - StackIt",
-      html: htmlContent,
+      templateData: {
+        SUBJECT: "Verify Your Email - StackIt",
+        GREETING: `Hello ${name},`,
+        MAIN_MESSAGE:
+          "Thank you for signing up to StackIt. Please use the OTP below to verify your email address.",
+        HIGHLIGHT_CONTENT: otp,
+        SECONDARY_MESSAGE: "This OTP will expire in 1 hour.",
+      },
     });
 
     res.status(201).json({
@@ -68,9 +65,57 @@ export const verifyOTP = async (req, res) => {
     user.isEmailVerified = true;
     await user.save();
 
-    res.status(200).json({ message: "Email verified successfully." });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({
+      message: "Email verified successfully.",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
   } catch (error) {
     console.error("OTP Verification Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = Date.now() + 60 * 60 * 1000;
+
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+
+    await sendMail({
+      to: email,
+      subject: "Verify Your Email - StackIt ",
+      templateData: {
+        SUBJECT: "Verify Your Email - StackIt",
+        GREETING: `Hello ${user.name},`,
+        MAIN_MESSAGE: "Here's your OTP to verify your email address.",
+        HIGHLIGHT_CONTENT: otp,
+        SECONDARY_MESSAGE: "This OTP will expire in 1 hour.",
+      },
+    });
+
+    res.status(200).json({ message: "OTP resent to your email." });
+  } catch (error) {
+    console.error("Resend OTP Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
