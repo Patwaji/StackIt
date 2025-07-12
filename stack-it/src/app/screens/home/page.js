@@ -3,11 +3,27 @@
 import QuestionCard from "@/components/QuestionCard";
 import Link from "next/link";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function HomePage() {
   const [filter, setFilter] = useState("Newest");
+  // Simulate user authentication state. In a real app, this would come from an auth context.
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const router = useRouter();
 
-  // Mock data remains the same
+  // Mock data for display with all questions restored
   const mockQuestions = [
     {
       id: 1,
@@ -62,48 +78,70 @@ export default function HomePage() {
 
   const filters = ["Newest", "Most Votes", "Most Answers", "Unanswered"];
 
+  const handleAskQuestionClick = () => {
+    if (isLoggedIn) {
+      router.push("/screens/ask-question");
+    } else {
+      setShowLoginAlert(true);
+    }
+  };
+
   return (
-      // The main background and text colors are now handled by your global CSS on the `body` tag.
-      // The `darkMode` state has been removed as it's no longer needed in this component.
-      <div className="font-sans">
-        <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              All Questions
-            </h1>
-            <div className="flex items-center space-x-4 mt-3 sm:mt-0">
-              <Link
-                  href="screens/post-question"
-                  className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring focus:ring-offset-background"
-              >
-                Ask Question
-              </Link>
+      <>
+        <div className="font-sans">
+          <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                All Questions
+              </h1>
+              <div className="flex items-center space-x-4 mt-3 sm:mt-0">
+                {/* This button now triggers a function to check login status */}
+                <Button onClick={handleAskQuestionClick}>
+                  Ask Question
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center border-b border-border mb-6">
-            {filters.map((f) => (
-                <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`px-3 sm:px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
-                        filter === f
-                            ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
-                    }`}
-                >
-                  {f}
-                </button>
-            ))}
-          </div>
+            <div className="flex items-center border-b border-border mb-6">
+              {filters.map((f) => (
+                  <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`px-3 sm:px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+                          filter === f
+                              ? "border-primary text-primary"
+                              : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
+                      }`}
+                  >
+                    {f}
+                  </button>
+              ))}
+            </div>
 
-          <div className="space-y-4">
-            {mockQuestions.map((q) => (
-                // Assuming QuestionCard has also been updated to use theme variables
-                <QuestionCard key={q.id} question={q} />
-            ))}
-          </div>
-        </main>
-      </div>
+            <div className="space-y-4">
+              {mockQuestions.map((q) => (
+                  <QuestionCard key={q.id} question={q} />
+              ))}
+            </div>
+          </main>
+        </div>
+
+        <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Registration Required</AlertDialogTitle>
+              <AlertDialogDescription>
+                You need to create an account or log in before you can ask a question.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => router.push('/screens/register')}>
+                Continue to Register
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
   );
 }
