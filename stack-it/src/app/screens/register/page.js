@@ -24,9 +24,11 @@ import {
 
 import { signUpUrl, verifyOtpUrl } from "@/lib/API";
 import { toast } from "sonner";
+import { useUserStore } from "@/stores/userStores";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { fetchUser } = useUserStore();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -66,6 +68,7 @@ export default function RegisterPage() {
       localStorage.setItem("token", res.data.token);
       setIsDialogOpen(false);
       toast.success("Register Successfull 🥳");
+      fetchUser();
       router.push("/");
     } catch (error) {
       alert(error?.response?.data?.message || "OTP verification failed");

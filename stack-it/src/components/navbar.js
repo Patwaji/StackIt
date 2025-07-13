@@ -1,18 +1,11 @@
 "use client";
 
-import {
-  Search,
-  User,
-  Settings,
-  LogOut,
-  UserCircle,
-  Bell,
-  Menu,
-} from "lucide-react";
+import { Search, User, LogOut, Bell, Menu } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,48 +27,44 @@ import {
 } from "@/components/ui/sheet";
 import { ModeToggle } from "./theme/theme-toggle";
 import { toast } from "sonner";
-import { userDetailsUrl } from "@/lib/API";
+import { useUserStore } from "@/stores/userStores";
+import { notificationUrl } from "@/lib/API";
+import { formatDistanceToNow } from "date-fns";
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-  const { setTheme, theme } = useTheme();
+  const [notifications, setNotifications] = useState([]);
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
+
+  const { user, isLoggedIn, fetchUser, clearUser } = useUserStore();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      setIsLoggedIn(true);
-      fetchUserDetails(token);
-    }
+    if (token) fetchUser(token);
   }, []);
 
-  const fetchUserDetails = async (token) => {
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    clearUser();
+    router.refresh();
+    toast.success("Logged out successfully");
+  };
+
+  const fetchNotifications = async () => {
     try {
-      const res = await fetch(userDetailsUrl, {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await axios.get(notificationUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      if (!res.ok) throw new Error("Failed to fetch user");
-
-      const data = await res.json();
-      setUser(data);
+      setNotifications(response.data.notifications);
     } catch (error) {
-      console.error(error);
-      toast.error("Unable to load user info.");
+      console.error("Error fetching notifications:", error);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
-    setUser(null);
-    router.refresh();
-    toast.success("Logged out successfully");
   };
 
   return (
@@ -98,48 +87,69 @@ export function Navbar() {
               <Link href="/" className="text-sm font-medium hover:text-primary">
                 Home
               </Link>
-              {/* <Link
-                href="/community"
-                className="text-sm font-medium text-muted-foreground hover:text-primary"
-              >
-                Community
-              </Link> */}
             </div>
           </div>
 
-          {/* Search
-          <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="pl-10 pr-4"
-              />
-            </div>
-          </div> */}
-
           <div className="flex items-center space-x-2">
-            {/* <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-            >
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
-            </Button> */}
-
             <div className="hidden sm:block">
               <ModeToggle />
             </div>
 
             {isLoggedIn ? (
               <>
-                <Button variant="ghost" size="icon" className="hidden sm:block">
-                  <Bell className="h-5 w-5" />
-                  <span className="sr-only">Notifications</span>
-                </Button>
+                <DropdownMenu
+                  onOpenChange={(open) => open && fetchNotifications()}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Bell className="h-5 w-5" />
+                      <span className="sr-only">Notifications</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-80 max-h-96 overflow-y-auto"
+                  >
+                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    {notifications.length === 0 ? (
+                      <DropdownMenuItem className="text-muted-foreground">
+                        No new notifications
+                      </DropdownMenuItem>
+                    ) : (
+                      notifications.map((notif) => (
+                        <DropdownMenuItem
+                          key={notif._id}
+                          className="flex flex-col items-start"
+                        >
+                          <div className="text-sm font-medium">
+                            {notif.text}
+                          </div>
+                          {notif.question?.title && (
+                            <div className="text-xs text-muted-foreground italic">
+                              “{notif.question.title}”
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(notif.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </div>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Link
+                        href="/notifications"
+                        className="w-full text-center"
+                      >
+                        View All
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -173,20 +183,6 @@ export function Navbar() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {/* <Link href="/screens/profile-page">
-                      <DropdownMenuItem>
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </DropdownMenuItem>
-                    </Link> */}
-                    {/* <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem> */}
-                    <DropdownMenuItem className="sm:hidden">
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Notifications</span>
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="sm:hidden"
                       onClick={() =>
@@ -240,13 +236,6 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Home
-                  </Link>
-                  <Link
-                    href="/community"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Community
                   </Link>
                 </div>
               </SheetContent>

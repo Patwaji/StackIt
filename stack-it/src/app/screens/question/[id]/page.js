@@ -39,9 +39,22 @@ export default function QuestionDetailPage() {
     }
   };
 
-  useEffect(() => {
-    fetchQuestionData();
-  }, [id]);
+  const handleVote = async (questionId, type) => {
+    try {
+      await axios.post(
+        `${questionOperationUrl}${questionId}/${type}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      fetchQuestionData();
+    } catch (err) {
+      console.error("Failed to vote on question:", err);
+    }
+  };
 
   const handleAnswerSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +66,6 @@ export default function QuestionDetailPage() {
         { text: newAnswerContent, questionId: id },
         {
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
@@ -83,6 +95,10 @@ export default function QuestionDetailPage() {
     }
   };
 
+  useEffect(() => {
+    fetchQuestionData();
+  }, [id]);
+
   if (loading) {
     return <p className="text-center text-muted-foreground">Loading...</p>;
   }
@@ -110,13 +126,23 @@ export default function QuestionDetailPage() {
       <Card className="w-full bg-card text-card-foreground mb-8">
         <CardContent className="p-6 flex gap-6">
           <div className="flex flex-col items-center justify-start pt-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleVote(question._id, "upvote")}
+            >
               <ChevronUp className="h-5 w-5" />
             </Button>
             <span className="text-lg font-bold">
               {question.upvotes?.length || 0}
             </span>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleVote(question._id, "downvote")}
+            >
               <ChevronDown className="h-5 w-5" />
             </Button>
           </div>
@@ -136,10 +162,6 @@ export default function QuestionDetailPage() {
             <div className="flex items-center gap-1">
               <MessageSquare className="h-4 w-4" />
               <span>{replies.length} answers</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Eye className="h-4 w-4" />
-              <span>0 views</span>
             </div>
           </div>
           <div className="text-right">

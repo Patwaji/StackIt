@@ -1,4 +1,4 @@
-const BASE_URL = "https://stack-it-backend-apis.vercel.app/api";
+const BASE_URL = "http://localhost:5020/api";
 export const loginUrl = `${BASE_URL}/users/login`;
 export const signUpUrl = `${BASE_URL}/users/signup`;
 export const verifyOtpUrl = `${BASE_URL}/users/verify-otp`;
@@ -11,3 +11,5 @@ export const questionOperationUrl = `${BASE_URL}/questions/`;
 
 export const postAnswerUrl = `${BASE_URL}/replies/reply`;
 export const replyOperationUrl = `${BASE_URL}/replies/`;
+
+export const notificationUrl = `${BASE_URL}/notifications/all`;

@@ -6,37 +6,51 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { MessageSquare, Eye, ChevronUp, ChevronDown } from "lucide-react";
 import { questionOperationUrl } from "@/lib/API";
+import { useUserStore } from "@/stores/userStores";
+import { toast } from "sonner";
+import axios from "axios";
 
 export default function QuestionCard({ question, onVoteChange }) {
   const router = useRouter();
+  const { isLoggedIn } = useUserStore();
 
   const handleCardClick = useCallback(() => {
-    if (question) {
-      router.push(`/screens/question/${question.id}`);
+    if (isLoggedIn) {
+      if (question) {
+        router.push(`/screens/question/${question.id}`);
+      }
+    } else {
+      toast.info(
+        "Looks like you haven't logged in yet. Please log in first to see answers..."
+      );
     }
-  }, [question?.id, router]);
+  }, [question?.id, router, isLoggedIn]);
 
   if (!question) return null;
 
   const handleVote = async (type, e) => {
-    e.stopPropagation(); // Prevent card navigation
+    e.stopPropagation();
+
+    if (!isLoggedIn) {
+      return toast.info("You must be logged in to vote.");
+    }
 
     try {
-      const res = await fetch(`${questionOperationUrl}${question.id}/${type}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // if protected
-        },
-      });
+      await axios.post(
+        `${questionOperationUrl}${question.id}/${type}`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-      if (!res.ok) {
-        throw new Error("Vote failed");
-      }
-
-      if (onVoteChange) onVoteChange(); // Refresh list if callback is passed
+      if (onVoteChange) onVoteChange(); // Refresh data after vote
     } catch (err) {
-      console.error(err);
+      console.error("Vote error:", err);
+      toast.error("Something went wrong while voting.");
     }
   };
 
@@ -84,10 +98,6 @@ export default function QuestionCard({ question, onVoteChange }) {
             <div className="flex items-center gap-x-1">
               <MessageSquare size={14} />
               <span>{question.answers} answers</span>
-            </div>
-            <div className="flex items-center gap-x-1">
-              <Eye size={14} />
-              <span>{question.views} views</span>
             </div>
           </div>
           <div className="mt-2 sm:mt-0">

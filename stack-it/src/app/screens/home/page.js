@@ -1,7 +1,7 @@
 "use client";
 
 import QuestionCard from "@/components/QuestionCard";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getAllQuestionUrl } from "@/lib/API";
+import { useUserStore } from "@/stores/userStores";
 
 export default function HomePage() {
   const [filter, setFilter] = useState("Newest");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +27,9 @@ export default function HomePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const { isLoggedIn } = useUserStore();
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(
@@ -42,16 +43,11 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) setIsLoggedIn(true);
-  }, []);
+  }, [page, searchTerm]);
 
   useEffect(() => {
     fetchQuestions();
-  }, [page, searchTerm]);
+  }, [fetchQuestions]);
 
   const filters = ["Newest", "Most Votes", "Most Answers", "Unanswered"];
 
@@ -62,7 +58,7 @@ export default function HomePage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setPage(1); // reset to first page
+    setPage(1);
     fetchQuestions();
   };
 
@@ -70,32 +66,15 @@ export default function HomePage() {
     <>
       <div className="font-sans">
         <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <div className="flex flex-row justify-between items-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               All Questions
             </h1>
-            <Button onClick={handleAskQuestionClick} className="mt-3 sm:mt-0">
+            <Button onClick={handleAskQuestionClick} className="">
               Ask Question
             </Button>
           </div>
 
-          {/* <div className="flex items-center border-b border-border mb-6">
-            {filters.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 sm:px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
-                  filter === f
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-input"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div> */}
-
-          {/* Search Bar */}
           <form onSubmit={handleSearch} className="mb-6 max-w-md">
             <Input
               type="text"
@@ -115,11 +94,11 @@ export default function HomePage() {
                   question={{
                     id: q._id,
                     title: q.title,
-                    htmlContent: q.htmlContent, // <-- include this
-                    tags: [], // Add tag logic if available
+                    htmlContent: q.htmlContent,
+                    tags: [],
                     votes: q.upvotesCount || 0,
                     answers: q.replyCount || 0,
-                    views: 0, // Replace with actual views if supported
+                    views: 0,
                     author: q.userId?.name || "Unknown",
                     timeAgo: new Date(q.createdAt).toLocaleString(),
                   }}
@@ -133,7 +112,6 @@ export default function HomePage() {
             </p>
           )}
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8">
               <Button
