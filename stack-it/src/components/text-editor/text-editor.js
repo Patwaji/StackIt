@@ -10,6 +10,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Check, // For Combobox item selection indicator
+  ChevronsUpDown, // For Combobox trigger icon
+  X, // For removing selected tags
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,19 +26,82 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover, // Used for the Combobox
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command, // Used for the Combobox
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
+import { cn } from "@/lib/utils"; // Your utility for conditional classnames
+
 import axios from "axios";
 import { postQuestionUrl } from "@/lib/API";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 export function TextEditor() {
+  const [questionTitle, setQuestionTitle] = useState("");
   const [content, setContent] = useState("");
   const [jsonOutput, setJsonOutput] = useState(null);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [openCombobox, setOpenCombobox] = useState(false); // State for combobox popover
   const editorRef = useRef(null);
   const selectionRef = useRef(null);
   const router = useRouter();
+
+  const availableTags = [
+    "JavaScript",
+    "Python",
+    "Java",
+    "C#",
+    "C++",
+    "HTML",
+    "CSS",
+    "React",
+    "Node.js",
+    "MongoDB",
+    "SQL",
+    "PHP",
+    "Ruby",
+    "Go",
+    "TypeScript",
+    "Swift",
+    "Kotlin",
+    "Vue.js",
+    "Angular",
+    "Next.js",
+    "Express.js",
+    "NestJS",
+    "GraphQL",
+    "REST API",
+    "Docker",
+    "Kubernetes",
+    "AWS",
+    "Azure",
+    "GCP",
+    "Algorithms",
+    "Data Structures",
+    "Frontend",
+    "Backend",
+    "Fullstack",
+    "Mobile Development",
+    "Web Development",
+    "Database",
+    "Cybersecurity",
+    "DevOps",
+    "Machine Learning",
+    "Artificial Intelligence",
+  ];
 
   const executeCommand = (command, value = null) => {
     document.execCommand(command, false, value);
@@ -145,23 +211,39 @@ export function TextEditor() {
     setContent(editorRef.current?.innerHTML || "");
   };
 
+  const handleTagToggle = (tag) => {
+    setSelectedTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag)
+        : [...prevTags, tag]
+    );
+  };
+
   const handleSubmit = async () => {
+    if (!questionTitle.trim()) {
+      toast.error("Please enter a title for your question.");
+      return;
+    }
+    if (!content.trim()) {
+      toast.error("Please enter some content for your question.");
+      return;
+    }
+    if (selectedTags.length === 0) {
+      toast.error("Please select at least one tag for your question.");
+      return;
+    }
+
     const jsonResult = parseContentToJson();
     setJsonOutput(jsonResult);
 
-    const plainWords = jsonResult.plainText.trim().split(/\s+/);
-    const title =
-      "I'm asking about " +
-      plainWords.slice(0, 12).join(" ") +
-      (plainWords.length > 12 ? "..." : "");
-
     const payload = {
       ...jsonResult,
-      title,
+      title: questionTitle.trim(),
+      tags: selectedTags,
     };
 
     try {
-      const response = await axios.post(postQuestionUrl, payload, {
+      await axios.post(postQuestionUrl, payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -172,14 +254,29 @@ export function TextEditor() {
       router.push("/");
     } catch (error) {
       console.error("Error posting question:", error);
-      toast.error("Failed to post question");
+      toast.error("Failed to post question. Please try again.");
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <Card>
+        <CardHeader>
+          <CardTitle>Ask a New Question</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="questionTitle">Question Title</Label>
+            <Input
+              id="questionTitle"
+              type="text"
+              placeholder="e.g., How to center a div in CSS?"
+              value={questionTitle}
+              onChange={(e) => setQuestionTitle(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
           <div className="flex flex-wrap gap-2 p-2 border rounded-lg bg-muted/50">
             <Button
               variant="outline"
@@ -288,6 +385,82 @@ export function TextEditor() {
             onInput={handleContentChange}
             suppressContentEditableWarning={true}
           />
+
+          <div className="space-y-2">
+            <Label htmlFor="tags-combobox">Tags</Label>
+            <div className="relative">
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="w-full justify-between"
+                  >
+                    <span className="truncate">
+                      {selectedTags.length > 0
+                        ? `${selectedTags.length} tag(s) selected`
+                        : "Select tags..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]">
+                  <Command>
+                    <CommandInput placeholder="Search tags..." />
+                    <CommandList>
+                      <CommandEmpty>No tags found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableTags.map((tag) => (
+                          <CommandItem
+                            key={tag}
+                            value={tag}
+                            onSelect={() => {
+                              handleTagToggle(tag);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedTags.includes(tag)
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {tag}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2 min-h-[38px]">
+              {selectedTags.length > 0 ? (
+                selectedTags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    className="flex items-center gap-1 bg-muted/50 text-foreground"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagToggle(tag)}
+                      className="ml-1 text-foreground/70 hover:text-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No tags selected.
+                </p>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <Button onClick={handleSubmit} className="px-8">
               Post Question

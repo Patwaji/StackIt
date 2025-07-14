@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { userDetailsUrl } from "@/lib/API";
+import axios from "axios";
+import { toast } from "sonner";
 
 export const useUserStore = create((set) => ({
   user: null,
@@ -10,18 +12,20 @@ export const useUserStore = create((set) => ({
 
   fetchUser: async (token) => {
     try {
-      const res = await fetch(userDetailsUrl, {
+      const res = await axios.get(userDetailsUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!res.ok) throw new Error("Failed to fetch user");
-
-      const data = await res.json();
-      set({ user: data, isLoggedIn: true });
+      set({ user: res.data, isLoggedIn: true });
     } catch (error) {
-      console.error("Error fetching user:", error);
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        set({ user: null, isLoggedIn: false });
+        toast.error("Your session has expired. Please log in again.");
+      } else {
+        toast.error("Failed to fetch user data.");
+      }
     }
   },
 }));

@@ -17,6 +17,7 @@ export const postQuestion = async (req, res) => {
       alignment,
       wordCount,
       characterCount,
+      tags,
     } = req.body;
 
     const userId = req.user.userId;
@@ -32,6 +33,7 @@ export const postQuestion = async (req, res) => {
       wordCount,
       characterCount,
       userId,
+      tags,
     });
 
     await newQuestion.save();
@@ -184,51 +186,91 @@ export const getAllQuestions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const sortBy = req.query.sortBy || "recent";
     const skip = (page - 1) * limit;
 
-    let sortOption = {};
+    const sortBy = req.query.sort || "newest";
+    const search = req.query.search || "";
+    const tags = req.query.tags;
+
+    const matchCriteria = {};
+
+    if (search) {
+      matchCriteria.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { plainText: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (tags) {
+      const tagsArray = tags.split(",").map((tag) => tag.trim());
+      matchCriteria.tags = { $in: tagsArray };
+    }
+
+    const aggregationPipeline = [
+      { $match: matchCriteria },
+      {
+        $lookup: {
+          from: "replies",
+          localField: "_id",
+          foreignField: "questionId",
+          as: "replies",
+        },
+      },
+      {
+        $addFields: {
+          replyCount: { $size: { $ifNull: ["$replies", []] } },
+          upvotesCount: { $size: { $ifNull: ["$upvotes", []] } },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $project: {
+          title: 1,
+          plainText: 1,
+          htmlContent: 1,
+          createdAt: 1,
+          upvotes: 1,
+          downvotes: 1,
+          replyCount: 1,
+          upvotesCount: 1,
+          tags: 1,
+          user: {
+            _id: "$user._id",
+            name: "$user.name",
+            email: "$user.email",
+          },
+        },
+      },
+    ];
+
     if (sortBy === "upvotes") {
-      sortOption = { upvotes: -1 };
+      aggregationPipeline.push({ $sort: { upvotesCount: -1, createdAt: -1 } });
     } else if (sortBy === "replies") {
+      aggregationPipeline.push({ $sort: { replyCount: -1, createdAt: -1 } });
     } else {
-      sortOption = { createdAt: -1 };
+      aggregationPipeline.push({ $sort: { createdAt: -1 } });
     }
 
-    let questions = await Question.find()
-      .populate("userId", "name email")
-      .lean();
+    aggregationPipeline.push({ $skip: skip }, { $limit: limit });
 
-    const questionIds = questions.map((q) => q._id);
-    const replies = await Reply.aggregate([
-      { $match: { questionId: { $in: questionIds } } },
-      { $group: { _id: "$questionId", count: { $sum: 1 } } },
-    ]);
-
-    const replyMap = {};
-    replies.forEach((r) => {
-      replyMap[r._id.toString()] = r.count;
-    });
-
-    questions = questions.map((q) => ({
-      ...q,
-      replyCount: replyMap[q._id.toString()] || 0,
-      upvotesCount: q.upvotes.length,
-    }));
-
-    if (sortBy === "replies") {
-      questions.sort((a, b) => b.replyCount - a.replyCount);
-    } else if (sortBy === "upvotes") {
-      questions.sort((a, b) => b.upvotesCount - a.upvotesCount);
-    }
-
-    const paginatedQuestions = questions.slice(skip, skip + limit);
+    const questions = await Question.aggregate(aggregationPipeline);
+    const totalCount = await Question.countDocuments(matchCriteria);
 
     res.status(200).json({
       page,
-      total: questions.length,
-      pageSize: paginatedQuestions.length,
-      questions: paginatedQuestions,
+      total: totalCount,
+      pageSize: questions.length,
+      questions,
     });
   } catch (error) {
     console.error("Error fetching questions:", error);

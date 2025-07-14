@@ -55,6 +55,12 @@ const questionSchema = new mongoose.Schema({
   characterCount: {
     type: Number,
   },
+  tags: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
