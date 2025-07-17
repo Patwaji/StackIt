@@ -23,6 +23,12 @@ import {
   questionOperationUrl,
   replyOperationUrl,
 } from "@/lib/API";
+import {
+  QuestionCardSkeleton,
+  AnswerFormSkeleton,
+  ReplyCardSkeleton,
+} from "@/components/skeleton/question-details-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function QuestionDetailPage() {
   const params = useParams();
@@ -112,7 +118,18 @@ export default function QuestionDetailPage() {
   const hasDownvotedQ = question?.downvotes?.includes(userId);
 
   if (loading) {
-    return <p className="text-center text-muted-foreground">Loading...</p>;
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Skeleton className="h-10 w-40 mb-6" />
+        <QuestionCardSkeleton />
+        <AnswerFormSkeleton />
+        <Skeleton className="h-6 w-1/3 mb-4 mt-10" />{" "}
+        <div className="space-y-4">
+          <ReplyCardSkeleton />
+          <ReplyCardSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (!question) {

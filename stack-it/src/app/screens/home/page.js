@@ -1,6 +1,6 @@
 "use client";
 
-import QuestionCard from "@/components/QuestionCard";
+import QuestionCard from "@/components/QuestionCard"; // Import QuestionCardSkeleton
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { XIcon } from "lucide-react";
+import { QuestionCardSkeleton } from "@/components/skeleton/question-card-skeleton";
 
 export default function HomePage() {
   const [questions, setQuestions] = useState([]);
@@ -219,7 +220,11 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground text-center">Loading...</p>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <QuestionCardSkeleton key={index} />
+            ))}
+          </div>
         ) : questions.length > 0 ? (
           <div className="space-y-4">
             {questions.map((q) => (
@@ -229,7 +234,7 @@ export default function HomePage() {
                   id: q._id,
                   title: q.title,
                   htmlContent: q.htmlContent,
-                  tags: [],
+                  tags: q.tags, // Ensure tags are passed
                   votes: q.upvotesCount || 0,
                   answers: q.replyCount || 0,
                   views: 0,
@@ -237,7 +242,6 @@ export default function HomePage() {
                   timeAgo: q.createdAt,
                   upvotes: q.upvotes,
                   downvotes: q.downvotes,
-                  tags: q.tags,
                 }}
                 onVoteChange={fetchQuestions}
               />
